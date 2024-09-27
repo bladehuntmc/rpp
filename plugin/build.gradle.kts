@@ -3,14 +3,7 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 plugins {
     id("com.gradle.plugin-publish") version "1.3.0"
     alias(libs.plugins.kotlin.jvm)
-    id("com.gradleup.shadow") version "8.3.2"
-}
-
-group = "net.bladehunt"
-version = "0.1.0-alpha.0"
-
-repositories {
-    mavenCentral()
+    alias(libs.plugins.shadow)
 }
 
 dependencies {
@@ -26,7 +19,7 @@ tasks.build {
 }
 
 tasks.named<ShadowJar>("shadowJar") {
-    this.archiveClassifier = ""
+    archiveClassifier = ""
 }
 
 gradlePlugin {
