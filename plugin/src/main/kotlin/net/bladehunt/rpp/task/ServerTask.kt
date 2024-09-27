@@ -40,7 +40,7 @@ abstract class ServerTask : DefaultTask() {
                 client.keepAlive()
                 clients.add(client)
                 println("Client opened ${client.ctx().port()}")
-                client.sendEvent("connected", "Welcome!")
+                client.sendEvent("update", hash.inputStream().readAllBytes())
                 client.onClose {
                     println("Client closed")
                     clients.remove(client)
