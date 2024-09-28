@@ -9,6 +9,8 @@ dependencies {
     implementation("cloud.prefab:sse-handler:1.0.1")
 }
 
+version = "dev"
+
 publishing {
     publications {
         create<MavenPublication>("library") {

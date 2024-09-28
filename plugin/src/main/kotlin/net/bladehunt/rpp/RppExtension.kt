@@ -11,6 +11,8 @@ fun Project.rpp(): RppExtension = extensions.create("rpp", RppExtension::class.j
 open class RppExtension @Inject constructor(
     objects: ObjectFactory,
 ) {
+    val minifyJson: Boolean = true
+
     val outputName: String? = null
 
     var sourceDirectory: String = "./src/main/rpp"

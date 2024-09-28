@@ -7,6 +7,7 @@ plugins {
 }
 
 dependencies {
+    implementation("com.grack:nanojson:1.9")
     implementation("io.javalin:javalin:6.3.0")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
