@@ -23,7 +23,7 @@ internal fun Project.buildResourcePack(
     buildDir.asFile.mkdirs()
 
     val outputDir = buildDir.dir("output").asFile
-    generateOutput(sourceDirectory, outputDir)
+    generateOutput(sourceDirectory, outputDir, extension.minifyJson)
     val output = buildDir.file("$outputName.zip").asFile
     archive(outputDir, output)
     buildDir.file("$outputName.sha1").asFile.writeText(output.sha1())
@@ -44,16 +44,10 @@ fun generateOutput(source: File, output: File, minifyJson: Boolean = true) {
         if (file.isDirectory) {
             val ignore = file.resolve(IGNORE_NAME)
 
-            // output.resolve(cleaned).mkdir()
-
             if (ignore.exists()) {
                 ignore.readLines().forEach lines@{ line ->
                     if (line.startsWith("#") || line.isEmpty()) return@lines
                     val pattern = Globs.toUnixRegexPattern(
-                        if (cleaned.isEmpty()) line.removePrefix("/")
-                        else "$cleaned/${line.removePrefix("/")}"
-                    )
-                    println(
                         if (cleaned.isEmpty()) line.removePrefix("/")
                         else "$cleaned/${line.removePrefix("/")}"
                     )

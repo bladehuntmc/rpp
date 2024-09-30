@@ -11,13 +11,13 @@ fun Project.rpp(): RppExtension = extensions.create("rpp", RppExtension::class.j
 open class RppExtension @Inject constructor(
     objects: ObjectFactory,
 ) {
-    val minifyJson: Boolean = true
+    var minifyJson: Boolean = true
 
-    val outputName: String? = null
+    var outputName: String? = null
 
     var sourceDirectory: String = "./src/main/rpp"
 
-    val server: RppServerHandler = objects.newInstance(RppServerHandler::class.java)
+    var server: RppServerHandler = objects.newInstance(RppServerHandler::class.java)
 
     fun server(action: Action<RppServerHandler>) {
         action.execute(server)

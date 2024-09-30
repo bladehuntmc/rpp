@@ -39,7 +39,7 @@ abstract class ServerTask : DefaultTask() {
             .sse("/sse") { client ->
                 client.keepAlive()
                 clients.add(client)
-                println("Client opened ${client.ctx().port()}")
+                println("Client opened ${client.ctx().req().localAddr}")
                 client.sendEvent("update", hash.inputStream().readAllBytes().decodeToString())
                 client.onClose {
                     println("Client closed")
