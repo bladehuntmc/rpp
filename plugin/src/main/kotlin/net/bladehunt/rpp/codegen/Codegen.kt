@@ -28,8 +28,6 @@ internal fun generateCode(
             fontClass.createNewFile()
 
             fontClass.outputStream().bufferedWriter().use { writer ->
-                println("font: " + fontClass.exists())
-                println("asset: " + asset.exists())
                 generateFontClass(
                     `package`,
                     className,
