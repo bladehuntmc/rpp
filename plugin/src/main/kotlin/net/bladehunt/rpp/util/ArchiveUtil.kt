@@ -77,7 +77,7 @@ fun generateOutput(
             return@forEach
         }
 
-        if (file.name == IGNORE_NAME || ignoredFiles.any { it.matcher(cleaned).matches() }) return@forEach
+        if (file.name == IGNORE_NAME || file.name == "codegen.json" || ignoredFiles.any { it.matcher(cleaned).matches() }) return@forEach
 
         val resolved = output.resolve(cleaned)
         if (minifyJson && file.extension == "json") {
