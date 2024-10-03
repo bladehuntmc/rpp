@@ -22,6 +22,8 @@ tasks.build {
 
 tasks.named<ShadowJar>("shadowJar") {
     archiveClassifier = ""
+    relocate("io.javalin", "net.bladehunt.rpp.lib.javalin")
+    relocate("kotlinx.serialization", "net.bladehunt.rpp.lib.serialization")
 }
 
 gradlePlugin {
