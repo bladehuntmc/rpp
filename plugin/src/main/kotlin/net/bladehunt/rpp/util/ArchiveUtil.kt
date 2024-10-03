@@ -1,16 +1,19 @@
 package net.bladehunt.rpp.util
 
-import com.grack.nanojson.JsonParser
 import com.grack.nanojson.JsonWriter
 import net.bladehunt.rpp.RppExtension
+import net.bladehunt.rpp.codegen.generateFontClass
 import org.gradle.api.Project
 import java.io.File
 import java.security.MessageDigest
+import java.util.*
 import java.util.regex.Pattern
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 private const val IGNORE_NAME = ".rppignore"
+
+private val FONT_MATCHER = Pattern.compile("assets/\\w+/font/\\w+\\.json")
 
 internal fun Project.buildResourcePack(
     extension: RppExtension =
@@ -23,7 +26,7 @@ internal fun Project.buildResourcePack(
     buildDir.asFile.mkdirs()
 
     val outputDir = buildDir.dir("output").asFile
-    generateOutput(sourceDirectory, outputDir, extension.minifyJson)
+    generateOutput(sourceDirectory, buildDir.dir("generated/java").asFile, outputDir, extension)
     val output = buildDir.file("$outputName.zip").asFile
     archive(outputDir, output)
     buildDir.file("$outputName.sha1").asFile.writeText(output.sha1())
@@ -31,13 +34,24 @@ internal fun Project.buildResourcePack(
 
 private val JsonParser = com.grack.nanojson.JsonParser.`object`()
 
-fun generateOutput(source: File, output: File, minifyJson: Boolean = true) {
+fun generateOutput(
+    source: File,
+    generatedOutput: File,
+    output: File,
+    extension: RppExtension
+) {
+    val minifyJson = extension.minifyJson
+    val fonts = extension.codegen.fonts
+
     if (!output.deleteRecursively()) throw IllegalStateException("Failed to clean output")
     if (!output.mkdir()) throw IllegalStateException("Failed to create output directory")
+
+    if (!generatedOutput.deleteRecursively()) throw IllegalStateException("Failed to clean generated output")
 
     // TODO: update output generation
     val prefix = source.path
     val ignoredFiles = arrayListOf<Pattern>()
+
     source.walkTopDown().forEach { file ->
         val cleaned = file.path.removePrefix(prefix).removePrefix("/")
 
@@ -65,6 +79,33 @@ fun generateOutput(source: File, output: File, minifyJson: Boolean = true) {
             resolved.parentFile.mkdirs()
             resolved.createNewFile()
             val obj = file.inputStream().use { stream -> JsonParser.from(stream) }
+
+            if (extension.codegen.enable && FONT_MATCHER.matcher(cleaned).matches()) run codegen@{
+                val (_, namespace) = cleaned.split("/")
+                val font = file.nameWithoutExtension
+
+                val fontObj = fonts.fonts.firstOrNull { it.font == font && it.namespace == namespace }
+
+                if (fontObj == null) return@codegen
+
+                val className = fonts.classPrefix +
+                        font.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() } +
+                        fonts.classSuffix
+                val clazz = generateFontClass(
+                    extension.codegen.fonts.`package`,
+                    className,
+                    fontObj,
+                    obj
+                )
+
+                val generatedFile = generatedOutput.resolve(extension.codegen.fonts.`package`.replace('.', '/') + "/" + className + ".java")
+                generatedFile.parentFile.mkdirs()
+                generatedFile.createNewFile()
+                generatedFile.outputStream().bufferedWriter().use { out ->
+                    out.write(clazz)
+                }
+            }
+
             resolved.outputStream().use { out ->
                 JsonWriter.on(out).`object`(obj).done()
             }
