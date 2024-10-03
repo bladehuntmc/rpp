@@ -1,12 +1,15 @@
 package net.bladehunt.rpp.util
 
-import com.grack.nanojson.JsonWriter
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromStream
+import kotlinx.serialization.json.encodeToStream
+import net.bladehunt.rpp.Json
 import net.bladehunt.rpp.RppExtension
-import net.bladehunt.rpp.codegen.generateFontClass
+import net.bladehunt.rpp.codegen.CodegenConfig
+import net.bladehunt.rpp.codegen.generateCode
 import org.gradle.api.Project
 import java.io.File
 import java.security.MessageDigest
-import java.util.*
 import java.util.regex.Pattern
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
@@ -26,27 +29,29 @@ internal fun Project.buildResourcePack(
     buildDir.asFile.mkdirs()
 
     val outputDir = buildDir.dir("output").asFile
-    generateOutput(sourceDirectory, buildDir.dir("generated/java").asFile, outputDir, extension)
+    generateOutput(sourceDirectory, outputDir, extension)
     val output = buildDir.file("$outputName.zip").asFile
     archive(outputDir, output)
     buildDir.file("$outputName.sha1").asFile.writeText(output.sha1())
-}
 
-private val JsonParser = com.grack.nanojson.JsonParser.`object`()
+    val generated = buildDir.dir("generated/java").asFile
+    val codegenConfig: CodegenConfig = sourceDirectory
+        .resolve("codegen.json")
+        .takeIf { it.exists() }
+        ?.inputStream()?.use { Json.decodeFromStream(it) } ?: return
+
+    generateCode(codegenConfig, sourceDirectory.resolve("assets"), generated)
+}
 
 fun generateOutput(
     source: File,
-    generatedOutput: File,
     output: File,
     extension: RppExtension
 ) {
     val minifyJson = extension.minifyJson
-    val fonts = extension.codegen.fonts
 
     if (!output.deleteRecursively()) throw IllegalStateException("Failed to clean output")
     if (!output.mkdir()) throw IllegalStateException("Failed to create output directory")
-
-    if (!generatedOutput.deleteRecursively()) throw IllegalStateException("Failed to clean generated output")
 
     // TODO: update output generation
     val prefix = source.path
@@ -78,36 +83,10 @@ fun generateOutput(
         if (minifyJson && file.extension == "json") {
             resolved.parentFile.mkdirs()
             resolved.createNewFile()
-            val obj = file.inputStream().use { stream -> JsonParser.from(stream) }
-
-            if (extension.codegen.enable && FONT_MATCHER.matcher(cleaned).matches()) run codegen@{
-                val (_, namespace) = cleaned.split("/")
-                val font = file.nameWithoutExtension
-
-                val fontObj = fonts.fonts.firstOrNull { it.font == font && it.namespace == namespace }
-
-                if (fontObj == null) return@codegen
-
-                val className = fonts.classPrefix +
-                        font.replaceFirstChar { if (it.isLowerCase()) it.titlecase(Locale.getDefault()) else it.toString() } +
-                        fonts.classSuffix
-                val clazz = generateFontClass(
-                    extension.codegen.fonts.`package`,
-                    className,
-                    fontObj,
-                    obj
-                )
-
-                val generatedFile = generatedOutput.resolve(extension.codegen.fonts.`package`.replace('.', '/') + "/" + className + ".java")
-                generatedFile.parentFile.mkdirs()
-                generatedFile.createNewFile()
-                generatedFile.outputStream().bufferedWriter().use { out ->
-                    out.write(clazz)
-                }
-            }
+            val obj = file.inputStream().use { stream -> Json.decodeFromStream<JsonObject>(stream) }
 
             resolved.outputStream().use { out ->
-                JsonWriter.on(out).`object`(obj).done()
+                Json.encodeToStream(obj, out)
             }
         } else file.copyTo(
             resolved,
