@@ -88,6 +88,7 @@ internal fun generateFontClass(
     namespace: String,
     font: String,
     definition: FontDefinition,
+    spacePrefix: String,
     out: Writer
 ) {
     out.write(
@@ -123,7 +124,7 @@ internal fun generateFontClass(
             }
             is FontProvider.Space -> {
                 provider.advances.forEach { (key, advance) ->
-                    out.write(java("\n    public static final Component SPACE_${advance
+                    out.write(java("\n    public static final Component ${spacePrefix}_${advance
                         .toString()
                         .replace('.', '_')
                         .replace("-","NEG_")

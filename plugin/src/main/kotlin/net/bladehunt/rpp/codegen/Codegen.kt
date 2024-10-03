@@ -34,6 +34,7 @@ internal fun generateCode(
                     namespace,
                     font,
                     asset.inputStream().use { Json.decodeFromStream(it) },
+                    fontConfig.spacePrefix,
                     writer
                 )
             }
