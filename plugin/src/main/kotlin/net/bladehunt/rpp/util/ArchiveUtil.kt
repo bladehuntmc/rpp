@@ -1,8 +1,12 @@
 package net.bladehunt.rpp.util
 
-import com.grack.nanojson.JsonParser
-import com.grack.nanojson.JsonWriter
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromStream
+import kotlinx.serialization.json.encodeToStream
+import net.bladehunt.rpp.Json
 import net.bladehunt.rpp.RppExtension
+import net.bladehunt.rpp.codegen.CodegenConfig
+import net.bladehunt.rpp.codegen.generateCode
 import org.gradle.api.Project
 import java.io.File
 import java.security.MessageDigest
@@ -11,6 +15,8 @@ import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 
 private const val IGNORE_NAME = ".rppignore"
+
+private val FONT_MATCHER = Pattern.compile("assets/\\w+/font/\\w+\\.json")
 
 internal fun Project.buildResourcePack(
     extension: RppExtension =
@@ -23,21 +29,34 @@ internal fun Project.buildResourcePack(
     buildDir.asFile.mkdirs()
 
     val outputDir = buildDir.dir("output").asFile
-    generateOutput(sourceDirectory, outputDir, extension.minifyJson)
+    generateOutput(sourceDirectory, outputDir, extension)
     val output = buildDir.file("$outputName.zip").asFile
     archive(outputDir, output)
     buildDir.file("$outputName.sha1").asFile.writeText(output.sha1())
+
+    val generated = buildDir.dir("generated/java").asFile
+    val codegenConfig: CodegenConfig = sourceDirectory
+        .resolve("codegen.json")
+        .takeIf { it.exists() }
+        ?.inputStream()?.use { Json.decodeFromStream(it) } ?: return
+
+    generateCode(codegenConfig, sourceDirectory.resolve("assets"), generated)
 }
 
-private val JsonParser = com.grack.nanojson.JsonParser.`object`()
+fun generateOutput(
+    source: File,
+    output: File,
+    extension: RppExtension
+) {
+    val minifyJson = extension.minifyJson
 
-fun generateOutput(source: File, output: File, minifyJson: Boolean = true) {
     if (!output.deleteRecursively()) throw IllegalStateException("Failed to clean output")
     if (!output.mkdir()) throw IllegalStateException("Failed to create output directory")
 
     // TODO: update output generation
     val prefix = source.path
     val ignoredFiles = arrayListOf<Pattern>()
+
     source.walkTopDown().forEach { file ->
         val cleaned = file.path.removePrefix(prefix).removePrefix("/")
 
@@ -58,15 +77,16 @@ fun generateOutput(source: File, output: File, minifyJson: Boolean = true) {
             return@forEach
         }
 
-        if (file.name == IGNORE_NAME || ignoredFiles.any { it.matcher(cleaned).matches() }) return@forEach
+        if (file.name == IGNORE_NAME || file.name == "codegen.json" || ignoredFiles.any { it.matcher(cleaned).matches() }) return@forEach
 
         val resolved = output.resolve(cleaned)
         if (minifyJson && file.extension == "json") {
             resolved.parentFile.mkdirs()
             resolved.createNewFile()
-            val obj = file.inputStream().use { stream -> JsonParser.from(stream) }
+            val obj = file.inputStream().use { stream -> Json.decodeFromStream<JsonObject>(stream) }
+
             resolved.outputStream().use { out ->
-                JsonWriter.on(out).`object`(obj).done()
+                Json.encodeToStream(obj, out)
             }
         } else file.copyTo(
             resolved,

@@ -17,11 +17,9 @@ open class RppExtension @Inject constructor(
 
     var sourceDirectory: String = "./src/main/rpp"
 
-    var server: RppServerHandler = objects.newInstance(RppServerHandler::class.java)
+    val server: RppServerHandler = objects.newInstance(RppServerHandler::class.java)
 
-    fun server(action: Action<RppServerHandler>) {
-        action.execute(server)
-    }
+    fun server(action: Action<RppServerHandler>) = action.execute(server)
 }
 
 open class RppServerHandler {

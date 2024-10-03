@@ -3,12 +3,13 @@ import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
 plugins {
     id("com.gradle.plugin-publish") version "1.3.0"
     alias(libs.plugins.kotlin.jvm)
+    kotlin("plugin.serialization") version "2.0.0"
     alias(libs.plugins.shadow)
 }
 
 dependencies {
-    implementation("com.grack:nanojson:1.9")
     implementation("io.javalin:javalin:6.3.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 
