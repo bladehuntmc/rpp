@@ -17,7 +17,7 @@ private val javaFile = java(
             public static Key FONT_KEY = Key.key("rpp_namespace", "rpp_font");
         
             private static char charFor(int n) {
-                return (char) ((n < 0 ? 57344 : 61440) + intSqrt(n));
+                return (char) ((n < 0 ? 61440 : 57344) + intSqrt(n));
             }
             
             public static Component component(int amount) {
