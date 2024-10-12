@@ -7,6 +7,7 @@ import net.bladehunt.rpp.Json
 import net.bladehunt.rpp.RppExtension
 import net.bladehunt.rpp.codegen.CodegenConfig
 import net.bladehunt.rpp.codegen.generateCode
+import net.bladehunt.rpp.spaces.writeSpaces
 import org.gradle.api.Project
 import java.io.File
 import java.security.MessageDigest
@@ -35,12 +36,13 @@ internal fun Project.buildResourcePack(
     buildDir.file("$outputName.sha1").asFile.writeText(output.sha1())
 
     val generated = buildDir.dir("generated/java").asFile
+
     val codegenConfig: CodegenConfig = sourceDirectory
         .resolve("codegen.json")
         .takeIf { it.exists() }
         ?.inputStream()?.use { Json.decodeFromStream(it) } ?: return
 
-    generateCode(codegenConfig, sourceDirectory.resolve("assets"), generated)
+    generateCode(codegenConfig, extension.spaces, sourceDirectory.resolve("assets"), generated)
 }
 
 fun generateOutput(
@@ -53,7 +55,6 @@ fun generateOutput(
     if (!output.deleteRecursively()) throw IllegalStateException("Failed to clean output")
     if (!output.mkdir()) throw IllegalStateException("Failed to create output directory")
 
-    // TODO: update output generation
     val prefix = source.path
     val ignoredFiles = arrayListOf<Pattern>()
 
@@ -93,6 +94,14 @@ fun generateOutput(
             true
         )
     }
+
+    val spaces = extension.spaces ?: return
+    val spaceOutputDir = output.resolve("assets/${spaces.namespace}/font")
+
+    spaceOutputDir.mkdirs()
+    val spacesOutput = spaceOutputDir.resolve(spaces.font + ".json")
+    spacesOutput.createNewFile()
+    writeSpaces(spaces.amount, spacesOutput.outputStream())
 }
 
 fun archive(source: File, output: File) {
