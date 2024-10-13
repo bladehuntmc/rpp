@@ -18,10 +18,14 @@ abstract class WatchTask : DefaultTask() {
     fun startWatching() {
         val extension = project.extensions.getByName("rpp") as RppExtension
 
+        val sourceDir = project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory)
+        val outputDir = project.layout.buildDirectory.asFile.get().resolve("rpp")
+        val version = project.version.toString()
+
         println("Built resource pack in ${measureTime {
             buildResourcePack(
                 logger,
-                project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory),
+                sourceDir,
                 project.layout.buildDirectory.asFile.get().resolve("rpp"),
                 project.version.toString(),
                 extension
@@ -34,9 +38,9 @@ abstract class WatchTask : DefaultTask() {
                 val elapsed = measureTime {
                     buildResourcePack(
                         logger,
-                        project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory),
-                        project.layout.buildDirectory.asFile.get().resolve("rpp"),
-                        project.version.toString(),
+                        sourceDir,
+                        outputDir,
+                        version,
                         extension
                     )
                 }

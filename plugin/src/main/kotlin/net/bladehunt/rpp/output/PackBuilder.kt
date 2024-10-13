@@ -33,9 +33,10 @@ internal fun buildResourcePack(
     )
 
     processOutput(context)
+    context.logger.debug("Build context: {}", context.toString().replace(", ", "\n"))
     context.outputProcessors.forEach { it.process(context) }
 
-    val defaultArchive = buildDir.resolve(extension.outputName ?: "resource_pack_${version}.zip")
+    val defaultArchive = buildDir.resolve((extension.outputName?.plus(".zip")) ?: "resource_pack_${version}.zip")
     archiveDirectory(outputDir, defaultArchive)
 
     context.generatedArchives.add(Archive("default", defaultArchive))
@@ -44,7 +45,7 @@ internal fun buildResourcePack(
 
     // write sha1 files
     context.generatedArchives.forEach { archive ->
-        val hashFile = archive.file.parentFile.resolve(archive.file.nameWithoutExtension + ".sha1")
+        val hashFile = archive.file.parentFile.resolve(archive.file.name.removeSuffix(".zip") + ".sha1")
         hashFile.writeText(archive.sha1Hash)
     }
 }
@@ -59,7 +60,7 @@ private fun processOutput(
     val ignoredFiles = ArrayList(defaultIgnores)
 
     context.sourcesDirectory.walkTopDown().forEach { file ->
-        val cleaned = file.path.removePrefix(prefix).removePrefix("/")
+        val cleaned = file.path.removePrefix(prefix).removePrefix(File.separator)
 
         if (file.isDirectory) {
             val ignore = file.resolve(IGNORE_NAME)
@@ -68,8 +69,8 @@ private fun processOutput(
                 ignore.readLines().forEach lines@{ line ->
                     if (line.startsWith("#") || line.isEmpty()) return@lines
                     val pattern = Globs.toUnixRegexPattern(
-                        if (cleaned.isEmpty()) line.removePrefix("/")
-                        else "$cleaned/${line.removePrefix("/")}"
+                        if (cleaned.isEmpty()) line.removePrefix(File.separator)
+                        else "$cleaned${File.pathSeparator}${line.removePrefix(File.separator)}"
                     )
                     ignoredFiles.add(Pattern.compile(pattern))
                 }
@@ -85,6 +86,7 @@ private fun processOutput(
             output,
             true
         )
+        context.logger.debug("Outputting {} to {}", file, output)
         context.processFile(output)
     }
 }

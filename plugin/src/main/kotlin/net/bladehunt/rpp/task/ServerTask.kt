@@ -27,11 +27,15 @@ abstract class ServerTask : DefaultTask() {
 
         println("Building resource pack...")
 
+        val sourceDir = project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory)
+        val outputDir = project.layout.buildDirectory.asFile.get().resolve("rpp")
+        val version = project.version.toString()
+
         buildResourcePack(
             logger,
-            project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory),
-            project.layout.buildDirectory.asFile.get().resolve("rpp"),
-            project.version.toString(),
+            sourceDir,
+            outputDir,
+            version,
             extension
         )
 
@@ -48,7 +52,7 @@ abstract class ServerTask : DefaultTask() {
                 clients.add(client)
                 val port = client.ctx().port()
                 println("Client opened at port $port")
-                client.sendEvent("update", hash.inputStream().readAllBytes().decodeToString())
+                if (hash.exists()) client.sendEvent("update", hash.inputStream().readAllBytes().decodeToString())
                 client.onClose {
                     println("Client at port $port closed")
                     clients.remove(client)
@@ -56,11 +60,11 @@ abstract class ServerTask : DefaultTask() {
             }
             .get("/pack") { ctx: Context ->
                 ctx.contentType(ContentType.APPLICATION_ZIP)
-                ctx.result(zip.inputStream().readAllBytes())
+                if (zip.exists()) ctx.result(zip.inputStream().readAllBytes())
             }
             .get("/hash") { ctx: Context ->
                 ctx.contentType(ContentType.TEXT_PLAIN)
-                ctx.result(hash.inputStream().readAllBytes())
+                if (hash.exists()) ctx.result(hash.inputStream().readAllBytes())
             }
             .start(extension.server.address.hostString, extension.server.address.port)
 
@@ -74,22 +78,23 @@ abstract class ServerTask : DefaultTask() {
         )
 
         try {
-            DirectoryWatcher(Path(extension.sourceDirectory)) {
+            DirectoryWatcher(sourceDir.toPath()) {
                 println("File changed - rebuilding resource pack...")
 
                 val elapsed = measureTime {
                     buildResourcePack(
                         logger,
-                        project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory),
-                        project.layout.buildDirectory.asFile.get().resolve("rpp"),
-                        project.version.toString(),
+                        sourceDir,
+                        outputDir,
+                        version,
                         extension
                     )
                 }
 
                 println("Rebuilt resource pack in ${elapsed.inWholeMilliseconds}ms\n")
 
-                val zipHash = hash.inputStream().readAllBytes().decodeToString()
+                val zipHash = if (hash.exists()) hash.inputStream().readAllBytes().decodeToString()
+                    else return@DirectoryWatcher
                 clients.forEach { it.sendEvent("update", zipHash) }
             }.watch()
         } catch (_: InterruptedException) { } finally {

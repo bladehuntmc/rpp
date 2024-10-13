@@ -4,5 +4,5 @@ subprojects {
     }
 
     group = "net.bladehunt"
-    version = "0.1.0-beta.0"
+    version = "0.1.0-beta.1"
 }
