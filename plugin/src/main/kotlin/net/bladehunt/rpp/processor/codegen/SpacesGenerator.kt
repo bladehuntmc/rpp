@@ -1,7 +1,9 @@
-package net.bladehunt.rpp.codegen
+package net.bladehunt.rpp.processor.codegen
 
+import net.bladehunt.rpp.output.BuildContext
+import net.bladehunt.rpp.processor.output.SpacesProcessor
 import net.bladehunt.rpp.util.java
-import kotlin.math.pow
+import java.io.File
 
 private val javaFile = java(
     """
@@ -53,18 +55,32 @@ private val javaFile = java(
     """.trimIndent()
 )
 
-internal fun createSpaceClass(
-    className: String,
-    classPackage: String,
-    namespace: String,
-    font: String,
-    amount: Int
-): String {
-    val amt = 2.0.pow(amount-1).toInt()
-    return javaFile
-        .replace("rpp_amount", amt.toString())
-        .replace("rpp_pkg", classPackage)
-        .replace("rpp_namespace", namespace)
-        .replace("rpp_font", font)
-        .replace("rpp_name", className)
+object SpacesGenerator : CodeGenerator(Int.MIN_VALUE) {
+    override fun generate(context: BuildContext, config: CodegenConfig, outputDir: File) {
+        val processors = context.outputProcessors.filterIsInstance<SpacesProcessor>()
+        config.spaces.forEach { spaceConfig ->
+            val processor = processors.firstOrNull { spaceConfig.font == it.font }
+
+            if (processor == null) {
+                context.logger.warn("The codegen configuration contained a nonexistent space font")
+                return@forEach
+            }
+
+            val pkg = spaceConfig.packageOverride ?:  (config.basePackage + ".spaces")
+            val outputPackage = outputDir.resolve(pkg.replace('.', '/'))
+
+            outputPackage.mkdirs()
+
+            val output = outputPackage.resolve("${spaceConfig.className}.java")
+
+            output.writeText(
+                javaFile
+                    .replace("rpp_amount", processor.amount.toString())
+                    .replace("rpp_pkg", pkg)
+                    .replace("rpp_namespace", spaceConfig.font.namespace)
+                    .replace("rpp_font", spaceConfig.font.value)
+                    .replace("rpp_name", spaceConfig.className)
+            )
+        }
+    }
 }
