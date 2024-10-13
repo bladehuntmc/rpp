@@ -48,13 +48,9 @@ open class RppExtension @Inject constructor(
         outputProcessors.add(SpacesProcessor(font, amount, priority))
     }
 
-    fun enableCodegen(priority: Int = Int.MAX_VALUE) {
-        outputProcessors.add(CodegenOutputProcessor(priority, emptySet()))
-    }
-
-    fun codegen(action: Action<CodegenProcessorBuilder>) {
+    fun codegen(action: Action<CodegenProcessorBuilder>? = null) {
         val builder = CodegenProcessorBuilder()
-        action.execute(builder)
+        action?.execute(builder)
         outputProcessors.add(builder.build())
     }
 }
