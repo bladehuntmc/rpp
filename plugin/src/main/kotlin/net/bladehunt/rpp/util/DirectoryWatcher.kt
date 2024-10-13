@@ -1,5 +1,6 @@
 package net.bladehunt.rpp.util
 
+import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.nio.file.*
 import java.nio.file.StandardWatchEventKinds.*
@@ -7,6 +8,8 @@ import java.nio.file.attribute.BasicFileAttributes
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.isDirectory
+
+private val LOGGER = LoggerFactory.getLogger(DirectoryWatcher::class.java)
 
 // Based on https://docs.oracle.com/javase/tutorial/displayCode.html?code=https://docs.oracle.com/javase/tutorial/essential/io/examples/WatchDir.java
 class DirectoryWatcher(
@@ -42,7 +45,7 @@ class DirectoryWatcher(
             val dir = keys[key]
 
             if (dir == null) {
-                System.err.println("WatchKey not recognized")
+                LOGGER.error("WatchKey not recognized")
                 continue
             }
 

@@ -7,5 +7,6 @@ import kotlinx.serialization.json.Json
 internal val Json = Json {
     allowComments = true
     ignoreUnknownKeys = true
+    allowTrailingComma = true
     prettyPrint = false
 }

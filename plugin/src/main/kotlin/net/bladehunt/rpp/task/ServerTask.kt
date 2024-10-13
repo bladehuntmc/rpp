@@ -6,7 +6,7 @@ import io.javalin.http.Context
 import io.javalin.http.sse.SseClient
 import net.bladehunt.rpp.util.DirectoryWatcher
 import net.bladehunt.rpp.RppExtension
-import net.bladehunt.rpp.util.buildResourcePack
+import net.bladehunt.rpp.output.buildResourcePack
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 import java.util.concurrent.ConcurrentLinkedQueue
@@ -26,7 +26,14 @@ abstract class ServerTask : DefaultTask() {
         val extension = project.extensions.getByName("rpp") as RppExtension
 
         println("Building resource pack...")
-        project.buildResourcePack(extension)
+
+        buildResourcePack(
+            logger,
+            project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory),
+            project.layout.buildDirectory.asFile.get().resolve("rpp"),
+            project.version.toString(),
+            extension
+        )
 
         val outputName = extension.outputName ?: "resource_pack_${project.version}"
         val buildDir = project.layout.buildDirectory.get().dir("rpp")
@@ -39,10 +46,11 @@ abstract class ServerTask : DefaultTask() {
             .sse("/sse") { client ->
                 client.keepAlive()
                 clients.add(client)
-                println("Client opened ${client.ctx().req().localAddr}")
+                val port = client.ctx().port()
+                println("Client opened at port $port")
                 client.sendEvent("update", hash.inputStream().readAllBytes().decodeToString())
                 client.onClose {
-                    println("Client closed")
+                    println("Client at port $port closed")
                     clients.remove(client)
                 }
             }
@@ -70,14 +78,19 @@ abstract class ServerTask : DefaultTask() {
                 println("File changed - rebuilding resource pack...")
 
                 val elapsed = measureTime {
-                    project.buildResourcePack(extension)
+                    buildResourcePack(
+                        logger,
+                        project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory),
+                        project.layout.buildDirectory.asFile.get().resolve("rpp"),
+                        project.version.toString(),
+                        extension
+                    )
                 }
 
-                println("Rebuilt resource pack in ${elapsed.inWholeMilliseconds}ms")
+                println("Rebuilt resource pack in ${elapsed.inWholeMilliseconds}ms\n")
 
                 val zipHash = hash.inputStream().readAllBytes().decodeToString()
                 clients.forEach { it.sendEvent("update", zipHash) }
-                println()
             }.watch()
         } catch (_: InterruptedException) { } finally {
             app.stop()

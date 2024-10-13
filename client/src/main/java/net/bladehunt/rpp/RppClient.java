@@ -72,7 +72,7 @@ public class RppClient {
         public void onNext(Event event) {
             data: if (event instanceof DataEvent dataEvent) {
                 if (!dataEvent.getEventName().equals("update")) break data;
-                String hash = dataEvent.getData();
+                String hash = dataEvent.getData().replace("\n", "");
 
                 latestHash = hash;
 
