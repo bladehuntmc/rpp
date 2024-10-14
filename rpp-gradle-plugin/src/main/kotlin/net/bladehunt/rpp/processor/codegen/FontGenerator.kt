@@ -1,8 +1,8 @@
 package net.bladehunt.rpp.processor.codegen
 
-import net.bladehunt.rpp.font.FontDefinition
-import net.bladehunt.rpp.font.FontProvider
-import net.bladehunt.rpp.font.Resource
+import net.bladehunt.rpp.model.FontDefinition
+import net.bladehunt.rpp.model.FontProvider
+import net.bladehunt.rpp.model.Resource
 import net.bladehunt.rpp.output.BuildContext
 import net.bladehunt.rpp.util.java
 import net.bladehunt.rpp.util.readJsonOrNull

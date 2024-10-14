@@ -12,7 +12,6 @@ import org.gradle.api.tasks.TaskAction
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlin.io.path.Path
 import kotlin.time.measureTime
 
 abstract class ServerTask : DefaultTask() {
@@ -25,7 +24,7 @@ abstract class ServerTask : DefaultTask() {
     fun startServer() {
         val extension = project.extensions.getByName("rpp") as RppExtension
 
-        println("Building resource pack...")
+        logger.lifecycle("Building resource pack...")
 
         val sourceDir = project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory)
         val outputDir = project.layout.buildDirectory.asFile.get().resolve("rpp")
@@ -51,10 +50,10 @@ abstract class ServerTask : DefaultTask() {
                 client.keepAlive()
                 clients.add(client)
                 val port = client.ctx().port()
-                println("Client opened at port $port")
+                logger.lifecycle("Client opened at port $port")
                 if (hash.exists()) client.sendEvent("update", hash.inputStream().readAllBytes().decodeToString())
                 client.onClose {
-                    println("Client at port $port closed")
+                    logger.lifecycle("Client at port $port closed")
                     clients.remove(client)
                 }
             }
@@ -68,7 +67,7 @@ abstract class ServerTask : DefaultTask() {
             }
             .start(extension.server.address.hostString, extension.server.address.port)
 
-        println("Resource pack server started at ${extension.server.address}")
+        logger.lifecycle("Resource pack server started at ${extension.server.address}")
 
         val future = Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(
             { clients.forEach { it.sendEvent("heartbeat") } },
@@ -79,7 +78,7 @@ abstract class ServerTask : DefaultTask() {
 
         try {
             DirectoryWatcher(sourceDir.toPath()) {
-                println("File changed - rebuilding resource pack...")
+                logger.lifecycle("File changed - rebuilding resource pack...")
 
                 val elapsed = measureTime {
                     buildResourcePack(
@@ -91,7 +90,7 @@ abstract class ServerTask : DefaultTask() {
                     )
                 }
 
-                println("Rebuilt resource pack in ${elapsed.inWholeMilliseconds}ms\n")
+                logger.lifecycle("Rebuilt resource pack in ${elapsed.inWholeMilliseconds}ms\n")
 
                 val zipHash = if (hash.exists()) hash.inputStream().readAllBytes().decodeToString()
                     else return@DirectoryWatcher
@@ -100,7 +99,7 @@ abstract class ServerTask : DefaultTask() {
         } catch (_: InterruptedException) { } finally {
             app.stop()
             future.cancel(true)
-            println("Resource pack server stopped")
+            logger.lifecycle("Resource pack server stopped")
         }
     }
 }

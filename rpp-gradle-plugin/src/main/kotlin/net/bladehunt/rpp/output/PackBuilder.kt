@@ -11,7 +11,7 @@ private const val IGNORE_NAME = ".rppignore"
 
 private val defaultIgnores = listOf(
     Pattern.compile(Globs.toUnixRegexPattern("*/$IGNORE_NAME")),
-    Pattern.compile(Globs.toUnixRegexPattern("codegen.json"))
+    Pattern.compile(Globs.toUnixRegexPattern("codegen.jsonc"))
 )
 
 internal fun buildResourcePack(
@@ -70,7 +70,7 @@ private fun processOutput(
                     if (line.startsWith("#") || line.isEmpty()) return@lines
                     val pattern = Globs.toUnixRegexPattern(
                         if (cleaned.isEmpty()) line.removePrefix(File.separator)
-                        else "$cleaned${File.pathSeparator}${line.removePrefix(File.separator)}"
+                        else "$cleaned${File.separator}${line.removePrefix(File.separator)}"
                     )
                     ignoredFiles.add(Pattern.compile(pattern))
                 }

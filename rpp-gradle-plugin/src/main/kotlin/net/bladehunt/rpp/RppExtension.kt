@@ -1,11 +1,10 @@
 package net.bladehunt.rpp
 
-import net.bladehunt.rpp.font.Resource
-import net.bladehunt.rpp.processor.*
-import net.bladehunt.rpp.processor.codegen.CodegenOutputProcessor
+import net.bladehunt.rpp.model.Resource
 import net.bladehunt.rpp.processor.codegen.CodegenProcessorBuilder
 import net.bladehunt.rpp.processor.file.FileProcessor
 import net.bladehunt.rpp.processor.file.JsonProcessor
+import net.bladehunt.rpp.processor.Processor
 import net.bladehunt.rpp.processor.output.SpacesProcessor
 import org.gradle.api.Action
 import org.gradle.api.Project

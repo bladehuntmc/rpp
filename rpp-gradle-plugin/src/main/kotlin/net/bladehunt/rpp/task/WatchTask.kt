@@ -22,7 +22,7 @@ abstract class WatchTask : DefaultTask() {
         val outputDir = project.layout.buildDirectory.asFile.get().resolve("rpp")
         val version = project.version.toString()
 
-        println("Built resource pack in ${measureTime {
+        logger.lifecycle("Built resource pack in ${measureTime {
             buildResourcePack(
                 logger,
                 sourceDir,
@@ -33,7 +33,7 @@ abstract class WatchTask : DefaultTask() {
         }.inWholeMilliseconds}ms\n")
         try {
             DirectoryWatcher(Path(extension.sourceDirectory)) {
-                println("File changed - rebuilding resource pack...")
+                logger.lifecycle("File changed - rebuilding resource pack...")
 
                 val elapsed = measureTime {
                     buildResourcePack(
@@ -45,10 +45,10 @@ abstract class WatchTask : DefaultTask() {
                     )
                 }
 
-                println("Rebuilt resource pack in ${elapsed.inWholeMilliseconds}ms\n")
+                logger.lifecycle("Rebuilt resource pack in ${elapsed.inWholeMilliseconds}ms\n")
             }.watch()
         } catch (_: InterruptedException) { } finally {
-            println("Stopped watching directory")
+            logger.lifecycle("Stopped watching directory")
         }
     }
 }

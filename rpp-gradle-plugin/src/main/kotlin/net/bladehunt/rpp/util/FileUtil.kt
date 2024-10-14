@@ -5,7 +5,7 @@ package net.bladehunt.rpp.util
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.decodeFromStream
-import net.bladehunt.rpp.Json
+import net.bladehunt.rpp.api.Json
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
@@ -32,6 +32,18 @@ fun archiveDirectory(source: File, output: File) {
     }
 }
 
+fun File.sha1(): String = MessageDigest.getInstance("SHA-1").let { sha1 ->
+    inputStream().use { input ->
+        val buffer = ByteArray(8192)
+        var read: Int
+        while (input.read(buffer).also { read = it } != -1) {
+            sha1.update(buffer, 0, read)
+        }
+    }
+
+    sha1.digest().joinToString("") { "%02x".format(it) }
+}
+
 @OptIn(ExperimentalSerializationApi::class)
 internal inline fun <reified T> File.readJsonOrNull(): T? {
     return try {
@@ -43,16 +55,4 @@ internal inline fun <reified T> File.readJsonOrNull(): T? {
         e.printStackTrace()
         null
     }
-}
-
-fun File.sha1(): String = MessageDigest.getInstance("SHA-1").let { sha1 ->
-    inputStream().use { input ->
-        val buffer = ByteArray(8192)
-        var read: Int
-        while (input.read(buffer).also { read = it } != -1) {
-            sha1.update(buffer, 0, read)
-        }
-    }
-
-    sha1.digest().joinToString("") { "%02x".format(it) }
 }

@@ -1,7 +1,7 @@
 package net.bladehunt.rpp.processor.codegen
 
 import kotlinx.serialization.Serializable
-import net.bladehunt.rpp.font.Resource
+import net.bladehunt.rpp.model.Resource
 
 @Serializable
 data class CodegenConfig(

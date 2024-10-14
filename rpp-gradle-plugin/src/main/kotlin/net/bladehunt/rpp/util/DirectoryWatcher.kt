@@ -12,7 +12,7 @@ import kotlin.io.path.isDirectory
 private val LOGGER = LoggerFactory.getLogger(DirectoryWatcher::class.java)
 
 // Based on https://docs.oracle.com/javase/tutorial/displayCode.html?code=https://docs.oracle.com/javase/tutorial/essential/io/examples/WatchDir.java
-class DirectoryWatcher(
+internal class DirectoryWatcher(
     path: Path,
     private val onChange: () -> Unit
 ) {

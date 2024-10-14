@@ -1,10 +1,10 @@
 package net.bladehunt.rpp.processor.output
 
 import kotlinx.serialization.json.encodeToStream
-import net.bladehunt.rpp.Json
-import net.bladehunt.rpp.font.FontDefinition
-import net.bladehunt.rpp.font.FontProvider
-import net.bladehunt.rpp.font.Resource
+import net.bladehunt.rpp.api.Json
+import net.bladehunt.rpp.model.FontDefinition
+import net.bladehunt.rpp.model.FontProvider
+import net.bladehunt.rpp.model.Resource
 import net.bladehunt.rpp.output.BuildContext
 import net.bladehunt.rpp.processor.Processor
 import kotlin.math.pow

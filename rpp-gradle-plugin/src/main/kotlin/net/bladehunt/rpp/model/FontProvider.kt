@@ -1,4 +1,4 @@
-package net.bladehunt.rpp.font
+package net.bladehunt.rpp.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
