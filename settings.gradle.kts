@@ -1,2 +1,2 @@
 rootProject.name = "rpp"
-include("plugin", "client")
+include("rpp-gradle-plugin", "client")
