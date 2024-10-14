@@ -9,7 +9,7 @@ plugins {
 
 dependencies {
     implementation("io.javalin:javalin:6.3.0")
-    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
+    api("org.jetbrains.kotlinx:kotlinx-serialization-json:1.7.3")
 
     testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
 
@@ -22,6 +22,7 @@ tasks.build {
 
 tasks.named<ShadowJar>("shadowJar") {
     archiveClassifier = ""
+    exclude("kotlin/**")
     relocate("io.javalin", "net.bladehunt.rpp.lib.javalin")
 }
 

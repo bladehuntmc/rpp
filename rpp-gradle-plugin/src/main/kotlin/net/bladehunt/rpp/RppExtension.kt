@@ -5,6 +5,7 @@ import net.bladehunt.rpp.processor.codegen.CodegenProcessorBuilder
 import net.bladehunt.rpp.processor.file.FileProcessor
 import net.bladehunt.rpp.processor.file.JsonProcessor
 import net.bladehunt.rpp.processor.Processor
+import net.bladehunt.rpp.processor.file.McmetaProcessor
 import net.bladehunt.rpp.processor.output.SpacesProcessor
 import org.gradle.api.Action
 import org.gradle.api.Project
@@ -30,6 +31,10 @@ open class RppExtension @Inject constructor(
     val archiveProcessors: MutableList<Processor> = arrayListOf()
 
     fun server(action: Action<RppServerHandler>) = action.execute(server)
+    
+    fun processMcmeta(priority: Int = 1) {
+        fileProcessors.add(McmetaProcessor(priority))
+    }
 
     fun processJson(
         transpileJsonc: Boolean = true,

@@ -23,12 +23,16 @@ rpp {
     
     // Codegen config example
     codegen {
-        priority = // Priority 
+        priority = // Output processor priority 
         
         // Adding custom code generators
         generators += // ...
     }
   
+    // Renames, minifies (result of processing), and strips comments from .mcmeta.json(c) files to .mcmeta.json
+    processMcmeta()
+    
+    // Transpile Jsonc to Json & minify
     processJson(transpileJsonc = true, minify = true)
   
     // Creates a spaces font. If codegen is enabled, it also allows for generating a utility

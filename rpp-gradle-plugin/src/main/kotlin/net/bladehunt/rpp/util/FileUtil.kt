@@ -17,9 +17,6 @@ fun archiveDirectory(source: File, output: File) {
         throw IllegalStateException("Source must exist and be a directory.")
     }
 
-    if (!source.resolve("pack.mcmeta").exists())
-        throw IllegalStateException("Resource pack source must contain pack.mcmeta")
-
     ZipOutputStream(output.outputStream().buffered()).use { zos ->
         source.walkTopDown().forEach { file ->
             val zipFileName = file.absolutePath.removePrefix(source.absolutePath).removePrefix("/")
