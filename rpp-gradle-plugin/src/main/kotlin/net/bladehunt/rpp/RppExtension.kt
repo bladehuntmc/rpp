@@ -31,8 +31,8 @@ open class RppExtension @Inject constructor(
     val archiveProcessors: MutableList<Processor> = arrayListOf()
 
     fun server(action: Action<RppServerHandler>) = action.execute(server)
-    
-    fun processMcmeta(priority: Int = 1) {
+
+    fun processMcmeta(priority: Int = -1) {
         fileProcessors.add(McmetaProcessor(priority))
     }
 
