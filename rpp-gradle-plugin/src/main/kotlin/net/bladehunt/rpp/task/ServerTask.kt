@@ -6,13 +6,12 @@ import io.javalin.http.Context
 import io.javalin.http.sse.SseClient
 import net.bladehunt.rpp.util.DirectoryWatcher
 import net.bladehunt.rpp.RppExtension
-import net.bladehunt.rpp.output.buildResourcePack
+import net.bladehunt.rpp.output.BuildContext
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlin.time.measureTime
 
 abstract class ServerTask : DefaultTask() {
     init {
@@ -24,24 +23,8 @@ abstract class ServerTask : DefaultTask() {
     fun startServer() {
         val extension = project.extensions.getByName("rpp") as RppExtension
 
-        logger.lifecycle("Building resource pack...")
-
-        val sourceDir = project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory)
-        val outputDir = project.layout.buildDirectory.asFile.get().resolve("rpp")
-        val version = project.version.toString()
-
-        buildResourcePack(
-            logger,
-            sourceDir,
-            outputDir,
-            version,
-            extension
-        )
-
-        val outputName = extension.outputName ?: "resource_pack_${project.version}"
-        val buildDir = project.layout.buildDirectory.get().dir("rpp")
-        val hash = buildDir.file("$outputName.sha1").asFile
-        val zip = buildDir.file("$outputName.zip").asFile
+        val context = BuildContext.fromTask(this)
+        context.buildTimed()
 
         val clients = ConcurrentLinkedQueue<SseClient>()
 
@@ -51,7 +34,10 @@ abstract class ServerTask : DefaultTask() {
                 clients.add(client)
                 val port = client.ctx().port()
                 logger.lifecycle("Client opened at port $port")
-                if (hash.exists()) client.sendEvent("update", hash.inputStream().readAllBytes().decodeToString())
+
+                val archive = context.generatedArchives[extension.server.archiveId]
+                if (archive != null) client.sendEvent("update", archive.sha1Hash)
+
                 client.onClose {
                     logger.lifecycle("Client at port $port closed")
                     clients.remove(client)
@@ -59,11 +45,17 @@ abstract class ServerTask : DefaultTask() {
             }
             .get("/pack") { ctx: Context ->
                 ctx.contentType(ContentType.APPLICATION_ZIP)
-                if (zip.exists()) ctx.result(zip.inputStream().readAllBytes())
+
+                val archive = context.generatedArchives[extension.server.archiveId]
+                archive?.file?.inputStream()?.use { input ->
+                    ctx.result(input)
+                }
             }
             .get("/hash") { ctx: Context ->
                 ctx.contentType(ContentType.TEXT_PLAIN)
-                if (hash.exists()) ctx.result(hash.inputStream().readAllBytes())
+
+                val archive = context.generatedArchives[extension.server.archiveId]
+                archive?.sha1Hash?.let { ctx.result(it) }
             }
             .start(extension.server.address.hostString, extension.server.address.port)
 
@@ -77,24 +69,24 @@ abstract class ServerTask : DefaultTask() {
         )
 
         try {
-            DirectoryWatcher(sourceDir.toPath()) {
+            DirectoryWatcher(context.sourcesDirectory.toPath()) {
                 logger.lifecycle("File changed - rebuilding resource pack...")
 
-                val elapsed = measureTime {
-                    buildResourcePack(
-                        logger,
-                        sourceDir,
-                        outputDir,
-                        version,
-                        extension
-                    )
+                val startArchive = context.generatedArchives[extension.server.archiveId]
+
+                if (startArchive == null) {
+                    logger.warn("Failed to find an archive with ID ${extension.server.archiveId} before building")
                 }
 
-                logger.lifecycle("Rebuilt resource pack in ${elapsed.inWholeMilliseconds}ms\n")
+                context.buildTimed()
 
-                val zipHash = if (hash.exists()) hash.inputStream().readAllBytes().decodeToString()
-                    else return@DirectoryWatcher
-                clients.forEach { it.sendEvent("update", zipHash) }
+                val endArchive = context.generatedArchives[extension.server.archiveId]
+
+                if (endArchive == null) {
+                    logger.error("Failed to find an archive with ID ${extension.server.archiveId} after building")
+                } else {
+                    clients.forEach { it.sendEvent("update", endArchive.sha1Hash) }
+                }
             }.watch()
         } catch (_: InterruptedException) { } finally {
             app.stop()

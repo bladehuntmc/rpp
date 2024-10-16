@@ -1,6 +1,7 @@
 package net.bladehunt.rpp
 
 import net.bladehunt.rpp.model.Resource
+import net.bladehunt.rpp.output.Archive
 import net.bladehunt.rpp.processor.codegen.CodegenProcessorBuilder
 import net.bladehunt.rpp.processor.file.FileProcessor
 import net.bladehunt.rpp.processor.file.JsonProcessor
@@ -61,4 +62,6 @@ open class RppExtension @Inject constructor(
 
 open class RppServerHandler {
     var address: InetSocketAddress = InetSocketAddress("127.0.0.1", 8000)
+
+    var archiveId: String = Archive.DEFAULT_NAME
 }
