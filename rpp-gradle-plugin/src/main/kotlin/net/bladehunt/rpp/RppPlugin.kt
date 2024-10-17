@@ -1,6 +1,7 @@
 package net.bladehunt.rpp
 
 import net.bladehunt.rpp.task.BuildTask
+import net.bladehunt.rpp.task.CleanTask
 import net.bladehunt.rpp.task.ServerTask
 import net.bladehunt.rpp.task.WatchTask
 import org.gradle.api.Project
@@ -20,6 +21,7 @@ class RppPlugin : Plugin<Project> {
 
             it.tasks.apply {
                 create("buildResourcePack", BuildTask::class.java)
+                create("cleanResourcePack", CleanTask::class.java)
                 create("watchResourcePack", WatchTask::class.java)
                 create("startResourcePackServer", ServerTask::class.java)
             }

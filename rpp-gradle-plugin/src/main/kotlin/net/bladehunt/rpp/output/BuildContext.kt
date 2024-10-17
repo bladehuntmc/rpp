@@ -89,6 +89,10 @@ data class BuildContext(
         }
     }
 
+    internal fun clean() {
+        buildDirectory.deleteRecursively()
+    }
+
     private fun processOutput() {
         if (outputDirectory.exists() && !outputDirectory.deleteRecursively()) throw IllegalStateException("Failed to clean output")
         if (!outputDirectory.mkdir()) throw IllegalStateException("Failed to create output directory")
