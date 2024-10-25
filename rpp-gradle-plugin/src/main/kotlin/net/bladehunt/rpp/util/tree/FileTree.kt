@@ -2,7 +2,6 @@ package net.bladehunt.rpp.util.tree
 
 import net.bladehunt.rpp.util.ignore.IgnoreFile
 import net.bladehunt.rpp.util.sha1
-import org.gradle.internal.impldep.org.apache.http.impl.cookie.IgnoreSpec
 import java.io.File
 
 private const val IGNORE_NAME = ".rppignore"

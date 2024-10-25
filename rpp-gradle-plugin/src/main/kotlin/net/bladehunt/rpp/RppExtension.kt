@@ -3,6 +3,7 @@ package net.bladehunt.rpp
 import net.bladehunt.rpp.build.Archive
 import net.bladehunt.rpp.processor.FileProcessor
 import net.bladehunt.rpp.processor.JsonProcessor
+import net.bladehunt.rpp.processor.PostProcessor
 import org.gradle.api.Action
 import org.gradle.api.Project
 import org.gradle.api.model.ObjectFactory
@@ -20,13 +21,15 @@ open class RppExtension @Inject constructor(
 
     val server: RppServerHandler = objects.newInstance(RppServerHandler::class.java)
 
-    val fileProcessors: MutableList<FileProcessor> = arrayListOf()
+    val fileProcessors: MutableList<FileProcessor<*>> = arrayListOf()
+
+    val outputProcessors: MutableList<PostProcessor<*>> = arrayListOf()
+
+    val archiveProcessors: MutableList<PostProcessor<*>> = arrayListOf()
+
+    var baseArchiveName = "resource_pack"
 
     fun server(action: Action<RppServerHandler>) = action.execute(server)
-
-    fun processJson() {
-        fileProcessors.add(JsonProcessor())
-    }
 }
 
 open class RppServerHandler {

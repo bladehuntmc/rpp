@@ -12,7 +12,7 @@ data class IgnoreFile(
     val sha1Hash: String
 ) {
     companion object {
-        fun fromFile(file: File, hash: String = file.sha1()): IgnoreFile? {
+        fun fromFile(file: File, hash: String? = null): IgnoreFile? {
             if (!file.exists()) return null
 
             val patterns = linkedSetOf<IgnorePattern>()
@@ -39,7 +39,7 @@ data class IgnoreFile(
                 }
             }
 
-            return IgnoreFile(patterns, negatedPatterns, hash)
+            return IgnoreFile(patterns, negatedPatterns, hash ?: file.sha1())
         }
     }
 

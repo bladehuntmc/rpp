@@ -1,10 +1,11 @@
 package net.bladehunt.rpp.build
 
 import net.bladehunt.rpp.RppExtension
-import net.bladehunt.rpp.processor.FileProcessor
+import net.bladehunt.rpp.processor.*
 import net.bladehunt.rpp.processor.process
 import net.bladehunt.rpp.processor.shouldExecute
 import net.bladehunt.rpp.util.FileLock
+import net.bladehunt.rpp.util.archiveDirectory
 import net.bladehunt.rpp.util.tree.*
 import org.gradle.api.Project
 import org.gradle.api.Task
@@ -15,8 +16,13 @@ private val LOGGER = Logging.getLogger(ResourcePackProcessor::class.java)
 
 class ResourcePackProcessor(
     val layout: Layout,
-    private val fileProcessors: List<FileProcessor>
+    private val baseArchiveName: String,
+    private val fileProcessors: List<FileProcessor<*>>,
+    private val outputProcessors: List<PostProcessor<*>>,
+    private val archiveProcessors: List<PostProcessor<*>>,
 ) {
+    private val context: MutableMap<Any, Any?> = hashMapOf()
+
     private val sourceTree: FileTree<FileData> = FileTree(layout.source)
 
     fun build() {
@@ -42,6 +48,30 @@ class ResourcePackProcessor(
                             processor.process(scope, it.data)
                         }
                     }
+
+                    outputProcessors.forEach {
+                        it.process(scope, result)
+                    }
+
+                    val baseArchiveFile = layout.build.root.resolve("$baseArchiveName.zip")
+
+                    archiveDirectory(layout.build.output, baseArchiveFile)
+
+                    val baseArchive = Archive(
+                        Archive.DEFAULT_NAME,
+                        baseArchiveFile
+                    )
+
+                    scope.addArchive(baseArchive)
+
+                    archiveProcessors.forEach {
+                        it.process(scope, result)
+                    }
+
+                    scope.archives.forEach { archive ->
+                        val hashFile = archive.file.resolveSibling(archive.file.nameWithoutExtension + ".sha1")
+                        hashFile.writeText(archive.sha1Hash)
+                    }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
@@ -64,6 +94,13 @@ class ResourcePackProcessor(
             it.data.outputs.forEach { output -> output.deleteRecursively() }
         }
     }
+
+    fun <T> createContext(processor: Processor<T>, context: T): T {
+        this.context[processor] = context
+        return context
+    }
+
+    fun <T> getContext(processor: Processor<T>): T? = context[processor] as T?
 
     fun clean() {
         layout.build.root.deleteRecursively()
@@ -131,7 +168,13 @@ class ResourcePackProcessor(
     companion object {
         internal fun fromTask(task: Task): ResourcePackProcessor {
             val extension = task.project.extensions.getByName("rpp") as RppExtension
-            return ResourcePackProcessor(Layout.fromProject(task.project, extension), extension.fileProcessors)
+            return ResourcePackProcessor(
+                Layout.fromProject(task.project, extension),
+                extension.baseArchiveName,
+                extension.fileProcessors,
+                extension.outputProcessors,
+                extension.archiveProcessors
+            )
         }
     }
 }
