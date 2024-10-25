@@ -6,11 +6,14 @@ import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.json.decodeFromStream
 import net.bladehunt.rpp.api.Json
+import org.gradle.api.logging.Logging
 import java.io.File
 import java.io.IOException
 import java.security.MessageDigest
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
+
+private val LOGGER = Logging.getLogger("net.bladehunt.rpp.util.FileUtil")
 
 fun archiveDirectory(source: File, output: File) {
     if (!source.exists() || !source.isDirectory) {
@@ -46,7 +49,7 @@ internal inline fun <reified T> File.readJsonOrNull(): T? {
     return try {
         inputStream().use { Json.decodeFromStream<T>(it) }
     } catch (e: SerializationException) {
-        e.printStackTrace()
+        e.message?.let { LOGGER.error("Exception while reading JSON: $it") } ?: e.printStackTrace()
         null
     } catch (e: IOException) {
         e.printStackTrace()

@@ -1,8 +1,9 @@
 package net.bladehunt.rpp.task
 
-import net.bladehunt.rpp.output.BuildContext
+import net.bladehunt.rpp.build.ResourcePackProcessor
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.*
+import kotlin.system.measureNanoTime
 
 abstract class BuildTask : DefaultTask() {
     init {
@@ -12,6 +13,10 @@ abstract class BuildTask : DefaultTask() {
 
     @TaskAction
     fun compile() {
-        BuildContext.fromTask(this).buildTimed()
+        val processor = ResourcePackProcessor.fromTask(this)
+
+        processor.layout.build.output.deleteRecursively()
+
+        logger.lifecycle("Built resource pack in ${ measureNanoTime { processor.build() } / 1_000_000 }ms")
     }
 }

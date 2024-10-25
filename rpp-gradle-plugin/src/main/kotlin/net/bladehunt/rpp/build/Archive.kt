@@ -1,4 +1,4 @@
-package net.bladehunt.rpp.output
+package net.bladehunt.rpp.build
 
 import net.bladehunt.rpp.util.sha1
 import java.io.File

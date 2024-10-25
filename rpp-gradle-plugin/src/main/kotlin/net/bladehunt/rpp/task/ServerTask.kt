@@ -1,17 +1,12 @@
 package net.bladehunt.rpp.task
 
-import io.javalin.Javalin
-import io.javalin.http.ContentType
-import io.javalin.http.Context
 import io.javalin.http.sse.SseClient
-import net.bladehunt.rpp.util.DirectoryWatcher
 import net.bladehunt.rpp.RppExtension
-import net.bladehunt.rpp.output.BuildContext
+import net.bladehunt.rpp.build.ResourcePackProcessor
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
 import java.util.concurrent.ConcurrentLinkedQueue
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+import kotlin.system.measureNanoTime
 
 abstract class ServerTask : DefaultTask() {
     init {
@@ -23,11 +18,15 @@ abstract class ServerTask : DefaultTask() {
     fun startServer() {
         val extension = project.extensions.getByName("rpp") as RppExtension
 
-        val context = BuildContext.fromTask(this)
-        context.buildTimed()
+        val processor = ResourcePackProcessor.fromTask(this)
+
+        processor.layout.build.output.deleteRecursively()
+
+        logger.lifecycle("Built resource pack in ${ measureNanoTime { processor.build() } / 1_000_000 }ms")
 
         val clients = ConcurrentLinkedQueue<SseClient>()
 
+        /*
         val app = Javalin.create()
             .sse("/sse") { client ->
                 client.keepAlive()
@@ -69,7 +68,10 @@ abstract class ServerTask : DefaultTask() {
         )
 
         try {
-            DirectoryWatcher(context.sourcesDirectory.toPath()) {
+            DirectoryWatcher(
+                context.sourcesDirectory.toPath(),
+                { context.invalidateAll() }
+            ) {
                 logger.lifecycle("File changed - rebuilding resource pack...")
 
                 val startArchive = context.generatedArchives[extension.server.archiveId]
@@ -78,7 +80,7 @@ abstract class ServerTask : DefaultTask() {
                     logger.warn("Failed to find an archive with ID ${extension.server.archiveId} before building")
                 }
 
-                context.buildTimed()
+                context.buildTimed(cache = true)
 
                 val endArchive = context.generatedArchives[extension.server.archiveId]
 
@@ -93,5 +95,7 @@ abstract class ServerTask : DefaultTask() {
             future.cancel(true)
             logger.lifecycle("Resource pack server stopped")
         }
+
+         */
     }
 }

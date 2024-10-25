@@ -5,3 +5,4 @@
 
 # Ignore Gradle build output directory
 build
+!/rpp-gradle-plugin/src/main/kotlin/net/bladehunt/rpp/build
