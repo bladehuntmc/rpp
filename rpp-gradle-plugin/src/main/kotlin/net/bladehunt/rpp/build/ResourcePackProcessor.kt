@@ -21,9 +21,13 @@ class ResourcePackProcessor(
     private val outputProcessors: List<PostProcessor<*>>,
     private val archiveProcessors: List<PostProcessor<*>>,
 ) {
+    private val archives = mutableMapOf<String, Archive>()
+
     private val context: MutableMap<Any, Any?> = hashMapOf()
 
     private val sourceTree: FileTree<FileData> = FileTree(layout.source)
+
+    fun getArchive(id: String): Archive? = archives[id]
 
     fun build() {
         layout.build.root.mkdirs()
@@ -68,9 +72,12 @@ class ResourcePackProcessor(
                         it.process(scope)
                     }
 
+                    archives.clear()
+
                     scope.archives.forEach { archive ->
                         val hashFile = archive.file.resolveSibling(archive.file.nameWithoutExtension + ".sha1")
                         hashFile.writeText(archive.sha1Hash)
+                        archives[archive.id] = archive
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
