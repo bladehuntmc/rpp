@@ -37,7 +37,7 @@ class ResourcePackProcessor(
 
             updateTrackedSource(result)
 
-            BuildScope(this).use { scope ->
+            BuildScope(this, result).use { scope ->
                 try {
                     result.created.forEach {
                         if (it !is Node.Leaf) return@forEach
@@ -50,7 +50,7 @@ class ResourcePackProcessor(
                     }
 
                     outputProcessors.forEach {
-                        it.process(scope, result)
+                        it.process(scope)
                     }
 
                     val baseArchiveFile = layout.build.root.resolve("$baseArchiveName.zip")
@@ -65,7 +65,7 @@ class ResourcePackProcessor(
                     scope.addArchive(baseArchive)
 
                     archiveProcessors.forEach {
-                        it.process(scope, result)
+                        it.process(scope)
                     }
 
                     scope.archives.forEach { archive ->
@@ -101,6 +101,11 @@ class ResourcePackProcessor(
     }
 
     fun <T> getContext(processor: Processor<T>): T? = context[processor] as T?
+
+    fun cleanOutputs() {
+        layout.build.output.deleteRecursively()
+        layout.build.generated.root.deleteRecursively()
+    }
 
     fun clean() {
         layout.build.root.deleteRecursively()

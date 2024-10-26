@@ -1,9 +1,11 @@
 package net.bladehunt.rpp.build
 
 import net.bladehunt.rpp.processor.Processor
+import net.bladehunt.rpp.util.tree.DiffResult
 
 class BuildScope(
     val rpp: ResourcePackProcessor,
+    val diff: DiffResult<FileData>,
     private val _archives: MutableMap<String, Archive> = linkedMapOf()
 ) : AutoCloseable {
     val archives get() = _archives.values
@@ -18,8 +20,13 @@ class BuildScope(
         return autoCloseable
     }
 
-    internal fun <T> getOrCreateContext(processor: Processor<T>) =
-        rpp.getContext(processor) ?: rpp.createContext(processor, processor.createContext())
+    @JvmName("_getOrCreateContext")
+    @JvmSynthetic
+    fun <T> Processor<T>.getOrCreateContext() =
+        rpp.getContext(this) ?: rpp.createContext(this, createContext(rpp))
+
+    fun <T> getOrCreateContext(processor: Processor<T>) =
+        rpp.getContext(processor) ?: rpp.createContext(processor, processor.createContext(rpp))
 
     fun deleteArchive(id: String): Archive? = _archives.remove(id)?.also {
         it.file.delete()
