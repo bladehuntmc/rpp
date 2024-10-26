@@ -22,6 +22,7 @@ sealed interface FontProvider {
     @SerialName("space")
     data class Space(
         val advances: Map<String, Float>,
+        val generated: Int? = null,
         override val filter: Filter? = null
     ) : FontProvider
 

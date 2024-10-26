@@ -1,20 +1,12 @@
 package net.bladehunt.rpp.task
 
 import net.bladehunt.rpp.util.DirectoryWatcher
-import net.bladehunt.rpp.RppExtension
 import net.bladehunt.rpp.build.ResourcePackProcessor
 import net.bladehunt.rpp.util.tree.TreePath
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
-import java.nio.file.Path
 import java.nio.file.StandardWatchEventKinds
-import java.nio.file.WatchEvent
-import kotlin.io.path.Path
-import kotlin.io.path.absolutePathString
-import kotlin.io.path.pathString
-import kotlin.io.path.relativeTo
 import kotlin.system.measureNanoTime
-import kotlin.system.measureTimeMillis
 
 abstract class WatchTask : DefaultTask() {
     init {
@@ -24,13 +16,11 @@ abstract class WatchTask : DefaultTask() {
 
     @TaskAction
     fun startWatching() {
-        val extension = project.extensions.getByName("rpp") as RppExtension
-
         val processor = ResourcePackProcessor.fromTask(this)
 
-        processor.layout.build.output.deleteRecursively()
+        processor.cleanOutputs()
 
-        logger.lifecycle("Built resource pack in ${ measureNanoTime { processor.build() } / 1_000_000 }ms")
+        logger.lifecycle("Built resource pack in ${ measureNanoTime { processor.build() } / 1_000_000.0 }ms")
         try {
             val source = processor.layout.source
 
@@ -56,7 +46,7 @@ abstract class WatchTask : DefaultTask() {
                     polled = it.poll()
                 }
 
-                logger.lifecycle("Built resource pack in ${ measureNanoTime { processor.build() } / 1_000_000 }ms")
+                logger.lifecycle("Built resource pack in ${ measureNanoTime { processor.build() } / 1_000_000.0 }ms")
             }.watch()
         } catch (_: InterruptedException) { } finally {
             logger.lifecycle("Stopped watching directory")

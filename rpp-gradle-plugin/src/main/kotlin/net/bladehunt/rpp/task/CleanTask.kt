@@ -1,5 +1,6 @@
 package net.bladehunt.rpp.task
 
+import net.bladehunt.rpp.build.ResourcePackProcessor
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.*
 
@@ -11,5 +12,6 @@ abstract class CleanTask : DefaultTask() {
 
     @TaskAction
     fun compile() {
+        ResourcePackProcessor.fromTask(this).clean()
     }
 }

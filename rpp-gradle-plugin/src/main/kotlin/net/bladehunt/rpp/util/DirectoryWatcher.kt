@@ -81,7 +81,7 @@ internal class DirectoryWatcher(
                 executor.schedule({
                     onChange(watchEventQueue)
                     isDebounceActive = false
-                }, 1, TimeUnit.SECONDS)
+                }, 50, TimeUnit.MILLISECONDS)
             }
 
             if (!key.reset()) {

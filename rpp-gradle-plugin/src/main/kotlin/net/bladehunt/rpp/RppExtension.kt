@@ -2,7 +2,6 @@ package net.bladehunt.rpp
 
 import net.bladehunt.rpp.build.Archive
 import net.bladehunt.rpp.processor.FileProcessor
-import net.bladehunt.rpp.processor.JsonProcessor
 import net.bladehunt.rpp.processor.PostProcessor
 import org.gradle.api.Action
 import org.gradle.api.Project
@@ -15,8 +14,6 @@ fun Project.rpp(): RppExtension = extensions.create("rpp", RppExtension::class.j
 open class RppExtension @Inject constructor(
     objects: ObjectFactory,
 ) {
-    var outputName: String? = null
-
     var sourceDirectory: String = "src/main/rpp"
 
     val server: RppServerHandler = objects.newInstance(RppServerHandler::class.java)

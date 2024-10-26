@@ -15,7 +15,7 @@ abstract class BuildTask : DefaultTask() {
     fun compile() {
         val processor = ResourcePackProcessor.fromTask(this)
 
-        processor.layout.build.output.deleteRecursively()
+        processor.cleanOutputs()
 
         logger.lifecycle("Built resource pack in ${ measureNanoTime { processor.build() } / 1_000_000 }ms")
     }

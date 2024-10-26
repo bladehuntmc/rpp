@@ -6,25 +6,26 @@ import net.bladehunt.rpp.RppExtension
 import net.bladehunt.rpp.api.Json
 import net.bladehunt.rpp.build.BuildScope
 import net.bladehunt.rpp.build.FileData
+import net.bladehunt.rpp.build.ResourcePackProcessor
 import net.bladehunt.rpp.util.readJsonOrNull
 
 private val IS_JSON = Regex(".*\\.jsonc?")
 
 private val IS_MCMETA = Regex(".*\\.mcmeta(\\.jsonc?)?")
 
-class JsonProcessor : FileProcessor<Nothing?> {
-    override fun createContext(): Nothing? = null
+object JsonProcessor : FileProcessor<Nothing?> {
+    override fun createContext(rpp: ResourcePackProcessor): Nothing? = null
 
-    override fun BuildScope.shouldExecute(file: FileData, context: Nothing?): Boolean =
+    override fun BuildScope.shouldExecute(file: FileData): Boolean =
         file.source.name.matches(IS_JSON) || file.source.name.matches(IS_MCMETA)
 
-    override fun BuildScope.process(file: FileData, context: Nothing?) {
-        file.outputs.iterator().forEach { input ->
+    override fun BuildScope.process(file: FileData) {
+        file.outputs.toList().forEach { input ->
             val name = input.name
             val newFile = input.resolveSibling(
                 when {
-                    name.matches(IS_JSON) -> "${input.nameWithoutExtension}.json"
                     name.matches(IS_MCMETA) -> "${input.nameWithoutExtension.removeSuffix(".mcmeta")}.mcmeta"
+                    name.matches(IS_JSON) -> "${input.nameWithoutExtension}.json"
                     else -> return@forEach
                 }
             )
@@ -44,5 +45,5 @@ class JsonProcessor : FileProcessor<Nothing?> {
 }
 
 fun RppExtension.processJson() {
-    fileProcessors.add(JsonProcessor())
+    fileProcessors.add(JsonProcessor)
 }
