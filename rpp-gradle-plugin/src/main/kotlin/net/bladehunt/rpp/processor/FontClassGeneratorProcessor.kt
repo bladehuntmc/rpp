@@ -1,6 +1,7 @@
 package net.bladehunt.rpp.processor
 
 import kotlinx.serialization.json.encodeToStream
+import net.bladehunt.rpp.RppExtension
 import net.bladehunt.rpp.api.Json
 import net.bladehunt.rpp.build.BuildScope
 import net.bladehunt.rpp.build.FileData
@@ -11,6 +12,7 @@ import net.bladehunt.rpp.model.Resource
 import net.bladehunt.rpp.util.java
 import net.bladehunt.rpp.util.readJsonOrNull
 import org.gradle.api.logging.Logging
+import java.io.File
 import java.io.Writer
 
 private val LOGGER = Logging.getLogger(FontClassGeneratorProcessor::class.java)
@@ -41,9 +43,16 @@ data class FontClassGeneratorProcessor(
 
             output.outputStream().use { out -> Json.encodeToStream(definition.copy(codegen = null), out) }
 
+            val split = output.path.split(File.separatorChar, '/')
+
+            val assetsIndex = split.indexOf("assets")
+            val fontIndex = split.indexOf("font")
+
+            if (assetsIndex == -1 || fontIndex == -1 || split.size <= fontIndex + 1) return@forEach
+
             outputClass.writer().use {
                 writeFile(
-                    Resource("idk:abc"),
+                    Resource(split[assetsIndex + 1], split[fontIndex + 1].split('.').first()),
                     definition,
                     it
                 )
@@ -111,4 +120,10 @@ data class FontClassGeneratorProcessor(
     }
 
     override fun createContext(rpp: ResourcePackProcessor): Nothing? = null
+}
+
+fun RppExtension.generateFontClasses(
+    shouldProcess: Regex = Regex("^/?assets/.*/font/.*.jsonc?$")
+): FontClassGeneratorProcessor = FontClassGeneratorProcessor(shouldProcess).also {
+    fileProcessors += it
 }
