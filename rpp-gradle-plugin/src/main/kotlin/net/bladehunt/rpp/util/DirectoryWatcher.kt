@@ -5,6 +5,8 @@ import java.io.IOException
 import java.nio.file.*
 import java.nio.file.StandardWatchEventKinds.*
 import java.nio.file.attribute.BasicFileAttributes
+import java.util.Queue
+import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.isDirectory
@@ -13,19 +15,22 @@ private val LOGGER = LoggerFactory.getLogger(DirectoryWatcher::class.java)
 
 // Based on https://docs.oracle.com/javase/tutorial/displayCode.html?code=https://docs.oracle.com/javase/tutorial/essential/io/examples/WatchDir.java
 internal class DirectoryWatcher(
-    path: Path,
-    private val onChange: () -> Unit
+    private val rootPath: Path,
+    private val onOverflow: (Queue<Pair<WatchEvent<Path>, Path>>) -> Unit = { it.clear() },
+    private val onChange: (Queue<Pair<WatchEvent<Path>, Path>>) -> Unit
 ) {
     private val keys: MutableMap<WatchKey, Path> = hashMapOf()
 
-    private val watchService = path.fileSystem.newWatchService()
+    private val watchEventQueue = ConcurrentLinkedQueue<Pair<WatchEvent<Path>, Path>>()
+
+    private val watchService = rootPath.fileSystem.newWatchService()
 
     private var isDebounceActive = false
 
     private val executor = Executors.newSingleThreadScheduledExecutor()
 
     init {
-        registerAll(path)
+        registerAll(rootPath)
     }
 
     private fun registerAll(start: Path) {
@@ -54,13 +59,15 @@ internal class DirectoryWatcher(
                 val kind = event.kind()
 
                 if (kind === OVERFLOW) {
+                    onOverflow(watchEventQueue)
                     continue
                 }
 
                 event as WatchEvent<Path>
 
                 val name = event.context()
-                val child = dir.resolve(name)
+                val child = rootPath.resolve(dir.resolve(name))
+                watchEventQueue.add(event to child)
 
                 if (kind === ENTRY_CREATE) {
                     try {
@@ -72,7 +79,7 @@ internal class DirectoryWatcher(
             if (!isDebounceActive) {
                 isDebounceActive = true
                 executor.schedule({
-                    onChange()
+                    onChange(watchEventQueue)
                     isDebounceActive = false
                 }, 50, TimeUnit.MILLISECONDS)
             }

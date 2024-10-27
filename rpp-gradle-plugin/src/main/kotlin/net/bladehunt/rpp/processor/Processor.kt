@@ -1,18 +1,10 @@
 package net.bladehunt.rpp.processor
 
-import net.bladehunt.rpp.output.BuildContext
+import net.bladehunt.rpp.build.ResourcePackProcessor
 
-@JvmSynthetic
-inline fun Processor(
-    priority: Int = 0,
-    crossinline process: (context: BuildContext) -> Unit
-): Processor = object : Processor(priority) {
-    override fun process(context: BuildContext) = process(context)
-}
-
-abstract class Processor(val priority: Int) {
+interface Processor<T> {
     /**
-     * @param context The current task's BuildContext
+     * Context is shared while the current session is active
      */
-    abstract fun process(context: BuildContext)
+    fun createContext(rpp: ResourcePackProcessor): T
 }

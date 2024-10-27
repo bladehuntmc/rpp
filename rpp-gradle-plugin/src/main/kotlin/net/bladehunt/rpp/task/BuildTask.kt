@@ -1,9 +1,9 @@
 package net.bladehunt.rpp.task
 
-import net.bladehunt.rpp.RppExtension
-import net.bladehunt.rpp.output.buildResourcePack
+import net.bladehunt.rpp.build.ResourcePackProcessor
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.*
+import kotlin.system.measureNanoTime
 
 abstract class BuildTask : DefaultTask() {
     init {
@@ -13,13 +13,10 @@ abstract class BuildTask : DefaultTask() {
 
     @TaskAction
     fun compile() {
-        val extension = project.extensions.getByName("rpp") as RppExtension
-        buildResourcePack(
-            logger,
-            project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory),
-            project.layout.buildDirectory.asFile.get().resolve("rpp"),
-            project.version.toString(),
-            extension
-        )
+        val processor = ResourcePackProcessor.fromTask(this)
+
+        processor.cleanOutputs()
+
+        logger.lifecycle("Built resource pack in ${ measureNanoTime { processor.build() } / 1_000_000 }ms")
     }
 }

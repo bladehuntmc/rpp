@@ -1,12 +1,12 @@
 package net.bladehunt.rpp.task
 
 import net.bladehunt.rpp.util.DirectoryWatcher
-import net.bladehunt.rpp.RppExtension
-import net.bladehunt.rpp.output.buildResourcePack
+import net.bladehunt.rpp.build.ResourcePackProcessor
+import net.bladehunt.rpp.util.tree.TreePath
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
-import kotlin.io.path.Path
-import kotlin.time.measureTime
+import java.nio.file.StandardWatchEventKinds
+import kotlin.system.measureNanoTime
 
 abstract class WatchTask : DefaultTask() {
     init {
@@ -16,36 +16,37 @@ abstract class WatchTask : DefaultTask() {
 
     @TaskAction
     fun startWatching() {
-        val extension = project.extensions.getByName("rpp") as RppExtension
+        val processor = ResourcePackProcessor.fromTask(this)
 
-        val sourceDir = project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory)
-        val outputDir = project.layout.buildDirectory.asFile.get().resolve("rpp")
-        val version = project.version.toString()
+        processor.cleanOutputs()
 
-        logger.lifecycle("Built resource pack in ${measureTime {
-            buildResourcePack(
-                logger,
-                sourceDir,
-                project.layout.buildDirectory.asFile.get().resolve("rpp"),
-                project.version.toString(),
-                extension
-            )
-        }.inWholeMilliseconds}ms\n")
+        logger.lifecycle("Built resource pack in ${ measureNanoTime { processor.build() } / 1_000_000.0 }ms")
         try {
-            DirectoryWatcher(Path(extension.sourceDirectory)) {
+            val source = processor.layout.source
+
+            DirectoryWatcher(
+                source.toPath(),
+                { processor.invalidateAll(); it.clear() }
+            ) {
                 logger.lifecycle("File changed - rebuilding resource pack...")
 
-                val elapsed = measureTime {
-                    buildResourcePack(
-                        logger,
-                        sourceDir,
-                        outputDir,
-                        version,
-                        extension
-                    )
+                var polled = it.poll()
+                while (polled != null) {
+                    val (event, actualPath) = polled
+                    when (event.kind()) {
+                        StandardWatchEventKinds.ENTRY_DELETE,
+                        StandardWatchEventKinds.ENTRY_MODIFY -> {
+                            try {
+                                processor.invalidate(TreePath(source, actualPath.toFile()))
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
+                    polled = it.poll()
                 }
 
-                logger.lifecycle("Rebuilt resource pack in ${elapsed.inWholeMilliseconds}ms\n")
+                logger.lifecycle("Built resource pack in ${ measureNanoTime { processor.build() } / 1_000_000.0 }ms")
             }.watch()
         } catch (_: InterruptedException) { } finally {
             logger.lifecycle("Stopped watching directory")

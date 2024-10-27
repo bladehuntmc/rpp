@@ -4,15 +4,17 @@ import io.javalin.Javalin
 import io.javalin.http.ContentType
 import io.javalin.http.Context
 import io.javalin.http.sse.SseClient
-import net.bladehunt.rpp.util.DirectoryWatcher
 import net.bladehunt.rpp.RppExtension
-import net.bladehunt.rpp.output.buildResourcePack
+import net.bladehunt.rpp.build.ResourcePackProcessor
+import net.bladehunt.rpp.util.DirectoryWatcher
+import net.bladehunt.rpp.util.tree.TreePath
 import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.TaskAction
+import java.nio.file.StandardWatchEventKinds
 import java.util.concurrent.ConcurrentLinkedQueue
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
-import kotlin.time.measureTime
+import kotlin.system.measureNanoTime
 
 abstract class ServerTask : DefaultTask() {
     init {
@@ -24,24 +26,13 @@ abstract class ServerTask : DefaultTask() {
     fun startServer() {
         val extension = project.extensions.getByName("rpp") as RppExtension
 
-        logger.lifecycle("Building resource pack...")
+        val processor = ResourcePackProcessor.fromTask(this)
 
-        val sourceDir = project.layout.projectDirectory.asFile.resolve(extension.sourceDirectory)
-        val outputDir = project.layout.buildDirectory.asFile.get().resolve("rpp")
-        val version = project.version.toString()
+        processor.cleanOutputs()
 
-        buildResourcePack(
-            logger,
-            sourceDir,
-            outputDir,
-            version,
-            extension
-        )
+        logger.lifecycle("Built resource pack in ${ measureNanoTime { processor.build() } / 1_000_000 }ms")
 
-        val outputName = extension.outputName ?: "resource_pack_${project.version}"
-        val buildDir = project.layout.buildDirectory.get().dir("rpp")
-        val hash = buildDir.file("$outputName.sha1").asFile
-        val zip = buildDir.file("$outputName.zip").asFile
+        val archiveId = extension.server.archiveId
 
         val clients = ConcurrentLinkedQueue<SseClient>()
 
@@ -51,7 +42,11 @@ abstract class ServerTask : DefaultTask() {
                 clients.add(client)
                 val port = client.ctx().port()
                 logger.lifecycle("Client opened at port $port")
-                if (hash.exists()) client.sendEvent("update", hash.inputStream().readAllBytes().decodeToString())
+
+                val archive = processor.getArchive(archiveId)
+                if (archive != null) client.sendEvent("update", archive.sha1Hash)
+                else logger.warn("Archive $archiveId was not found")
+
                 client.onClose {
                     logger.lifecycle("Client at port $port closed")
                     clients.remove(client)
@@ -59,11 +54,18 @@ abstract class ServerTask : DefaultTask() {
             }
             .get("/pack") { ctx: Context ->
                 ctx.contentType(ContentType.APPLICATION_ZIP)
-                if (zip.exists()) ctx.result(zip.inputStream().readAllBytes())
+
+                val archive = processor.getArchive(archiveId)
+                if (archive != null) ctx.result(archive.file.inputStream())
+                else logger.warn("Archive $archiveId was not found")
             }
             .get("/hash") { ctx: Context ->
                 ctx.contentType(ContentType.TEXT_PLAIN)
-                if (hash.exists()) ctx.result(hash.inputStream().readAllBytes())
+
+                val archive = processor.getArchive(extension.server.archiveId)
+
+                if (archive != null) ctx.result(archive.sha1Hash)
+                else logger.warn("Archive $archiveId was not found")
             }
             .start(extension.server.address.hostString, extension.server.address.port)
 
@@ -77,24 +79,37 @@ abstract class ServerTask : DefaultTask() {
         )
 
         try {
-            DirectoryWatcher(sourceDir.toPath()) {
+            DirectoryWatcher(
+                processor.layout.source.toPath(),
+                { processor.invalidateAll(); it.clear() }
+            ) {
                 logger.lifecycle("File changed - rebuilding resource pack...")
 
-                val elapsed = measureTime {
-                    buildResourcePack(
-                        logger,
-                        sourceDir,
-                        outputDir,
-                        version,
-                        extension
-                    )
+                var polled = it.poll()
+                while (polled != null) {
+                    val (event, actualPath) = polled
+                    when (event.kind()) {
+                        StandardWatchEventKinds.ENTRY_DELETE,
+                        StandardWatchEventKinds.ENTRY_MODIFY -> {
+                            try {
+                                processor.invalidate(TreePath(processor.layout.source, actualPath.toFile()))
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
+                    polled = it.poll()
                 }
 
-                logger.lifecycle("Rebuilt resource pack in ${elapsed.inWholeMilliseconds}ms\n")
+                logger.lifecycle("Built resource pack in ${ measureNanoTime { processor.build() } / 1_000_000.0 }ms")
 
-                val zipHash = if (hash.exists()) hash.inputStream().readAllBytes().decodeToString()
-                    else return@DirectoryWatcher
-                clients.forEach { it.sendEvent("update", zipHash) }
+                val archiveResult = processor.getArchive(archiveId)
+
+                if (archiveResult == null) {
+                    logger.warn("Archive $archiveId was not found")
+                    return@DirectoryWatcher
+                }
+                clients.forEach { client -> client.sendEvent("update", archiveResult.sha1Hash) }
             }.watch()
         } catch (_: InterruptedException) { } finally {
             app.stop()
