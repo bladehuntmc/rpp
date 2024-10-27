@@ -72,21 +72,3 @@ class GitIgnore(private val ignorePatterns: List<String>) {
 
     private data class IgnorePattern(val regex: Regex, val isNegated: Boolean)
 }
-
-fun main() {
-    val gitignorePatterns = listOf(
-        "*.log",
-        "!important.log",
-        "build/",
-        "*.tmp"
-    )
-
-    val gitIgnore = GitIgnore(gitignorePatterns)
-
-    println(gitIgnore.matches("test.log"))       // Should be true
-    println(gitIgnore.matches("important.log"))  // Should be false
-    println(gitIgnore.matches("build/index.js")) // Should be true
-    println(gitIgnore.matches("notes.tmp"))      // Should be true
-    println(gitIgnore.matches("src/main.kt"))    // Should be false
-    println(gitIgnore.matches("build/idk/test.json"))    // Should be false
-}
