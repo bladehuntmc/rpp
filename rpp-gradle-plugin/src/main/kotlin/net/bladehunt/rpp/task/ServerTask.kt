@@ -56,9 +56,7 @@ abstract class ServerTask : DefaultTask() {
                 ctx.contentType(ContentType.APPLICATION_ZIP)
 
                 val archive = processor.getArchive(archiveId)
-                if (archive != null) archive.file.inputStream().use { input ->
-                    ctx.result(input)
-                }
+                if (archive != null) ctx.result(archive.file.inputStream())
                 else logger.warn("Archive $archiveId was not found")
             }
             .get("/hash") { ctx: Context ->
